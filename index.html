@@ -1,204 +1,68 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#14181c">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Ricalca">
-<title>Ricalca – disegna con la fotocamera</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✏️</text></svg>">
-<style>
-:root{
-  --bg:#14181c; --panel:rgba(20,24,28,.88); --ink:#f2f4f5; --dim:#9aa5ad;
-  --line:#2c343b; --accent:#ffc83d; --accent-ink:#1a1400;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
-#stage{position:fixed;inset:0;overflow:hidden;touch-action:none;background:#000}
-#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-#ov{position:absolute;left:50%;top:50%;width:80vw;max-width:900px;height:auto;
-  transform-origin:center;pointer-events:none;user-select:none;-webkit-user-drag:none;display:none}
-#msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:14px;padding:32px;text-align:center;font-size:16px;line-height:1.45;color:var(--ink);pointer-events:none}
-#msg p{margin:0;max-width:34ch;color:var(--dim)}
-#msg strong{color:var(--ink);font-size:19px}
-#top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 0;
-  display:flex;gap:8px;justify-content:space-between;pointer-events:none}
-#top button{pointer-events:auto}
-#panel{position:absolute;left:0;right:0;bottom:0;background:var(--panel);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--line);
-  padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 12px);
-  max-height:62vh;overflow:auto;transition:transform .2s}
-#panel.closed{transform:translateY(100%)}
-.row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-button{font:inherit;font-size:14px;color:var(--ink);background:#232b32;border:1px solid var(--line);
-  border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer}
-button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-button.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-.round{background:var(--panel);min-width:44px}
-label{display:grid;grid-template-columns:92px 1fr 46px;align-items:center;gap:10px;font-size:14px;margin:6px 0}
-label output{text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
-input[type=range]{width:100%;accent-color:var(--accent);height:32px}
-#file{display:none}
-.hint{font-size:13px;color:var(--dim);margin:8px 0 0}
-body.locked #stage{cursor:default}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#14181c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ricalca">
+  <title>Ricalca – disegna con la fotocamera</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✏️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="stage">
-  <video id="cam" autoplay playsinline muted></video>
-  <img id="ov" alt="Immagine da ricalcare">
-  <div id="msg">
-    <strong>Ricalca un disegno</strong>
-    <p>Scegli un’immagine, inquadra il foglio e ripassa le linee che vedi in trasparenza.</p>
+  <div id="stage">
+    <video id="cam" autoplay playsinline muted></video>
+    <img id="overlay" alt="Immagine da ricalcare">
+    <div id="message">
+      <strong>Ricalca un disegno</strong>
+      <p>Scegli un’immagine, inquadra il foglio e ripassa le linee che vedi in trasparenza.</p>
+    </div>
   </div>
-</div>
 
-<div id="top">
-  <button class="round" id="togglePanel" aria-label="Mostra o nascondi i controlli">☰</button>
-  <button class="round" id="fs" aria-label="Schermo intero">⛶</button>
-</div>
-
-<section id="panel" aria-label="Controlli">
-  <div class="row">
-    <button class="main" id="pick">Scegli immagine</button>
-    <button id="camBtn">Avvia fotocamera</button>
-    <button id="flipCam">Cambia camera</button>
+  <div id="topbar">
+    <button class="round" id="togglePanel" aria-label="Mostra o nascondi i controlli">☰</button>
+    <button class="round" id="fullscreen" aria-label="Schermo intero">⛶</button>
   </div>
-  <label>Trasparenza <input type="range" id="op" min="0.05" max="1" step="0.01" value="0.5"><output id="opO">50%</output></label>
-  <label>Zoom <input type="range" id="sc" min="0.1" max="4" step="0.01" value="1"><output id="scO">1,00×</output></label>
-  <label>Rotazione <input type="range" id="rot" min="-180" max="180" step="1" value="0"><output id="rotO">0°</output></label>
-  <div class="row" style="margin-top:12px">
-    <button id="mirror" aria-pressed="false">Specchio</button>
-    <button id="lines" aria-pressed="false">Solo linee</button>
-    <button id="lock" aria-pressed="false">Blocca</button>
-    <button id="hide" aria-pressed="false">Nascondi</button>
-    <button id="reset">Azzera</button>
-  </div>
-  <p class="hint">Trascina l’immagine con un dito. Con due dita ingrandisci e ruoti. «Blocca» evita spostamenti mentre disegni. «Solo linee» rende trasparente il bianco, utile per i disegni al tratto. Tieni il telefono fermo con un supporto.</p>
-</section>
 
-<input type="file" id="file" accept="image/*">
+  <section id="panel" aria-label="Controlli">
+    <div class="row">
+      <button class="main" id="pick">Scegli immagine</button>
+      <button id="camToggle">Avvia fotocamera</button>
+      <button id="camSwitch">Cambia camera</button>
+    </div>
 
-<script>
-(function(){
-  var $ = function(id){return document.getElementById(id)};
-  var cam=$('cam'), ov=$('ov'), msg=$('msg'), panel=$('panel'), stage=$('stage');
-  var st={x:0,y:0,s:1,r:0,flip:false,op:.5,locked:false,hidden:false,lines:false};
-  var stream=null, facing='environment', wake=null;
+    <label>Trasparenza
+      <input type="range" id="opacity" min="0.05" max="1" step="0.01" value="0.5">
+      <output id="opacityOut">50%</output>
+    </label>
+    <label>Zoom
+      <input type="range" id="scale" min="0.1" max="4" step="0.01" value="1">
+      <output id="scaleOut">1,00×</output>
+    </label>
+    <label>Rotazione
+      <input type="range" id="rotation" min="-180" max="180" step="1" value="0">
+      <output id="rotationOut">0°</output>
+    </label>
 
-  function fmt(n){return n.toFixed(2).replace('.',',')}
-  function apply(){
-    ov.style.transform='translate(-50%,-50%) translate('+st.x+'px,'+st.y+'px) rotate('+st.r+'deg) scale('+(st.flip?-st.s:st.s)+','+st.s+')';
-    ov.style.opacity=st.op;
-    ov.style.filter=st.lines?'grayscale(1) contrast(1.6)':'none';
-    ov.style.mixBlendMode=st.lines?'multiply':'normal';
-    ov.style.visibility=st.hidden?'hidden':'visible';
-    $('op').value=st.op; $('opO').textContent=Math.round(st.op*100)+'%';
-    $('sc').value=st.s; $('scO').textContent=fmt(st.s)+'×';
-    $('rot').value=st.r; $('rotO').textContent=Math.round(st.r)+'°';
-  }
+    <div class="row row-actions">
+      <button id="mirror" aria-pressed="false">Specchio</button>
+      <button id="lines" aria-pressed="false">Solo linee</button>
+      <button id="lock" aria-pressed="false">Blocca</button>
+      <button id="hide" aria-pressed="false">Nascondi</button>
+      <button id="reset">Azzera</button>
+    </div>
 
-  /* Immagine */
-  $('pick').onclick=function(){$('file').click()};
-  $('file').onchange=function(e){
-    var f=e.target.files&&e.target.files[0]; if(!f) return;
-    var url=URL.createObjectURL(f);
-    ov.onload=function(){ov.style.display='block'; msg.style.display='none'; apply();};
-    ov.src=url;
-  };
+    <p class="hint">
+      Trascina l’immagine con un dito. Con due dita ingrandisci e ruoti.
+      «Blocca» evita spostamenti mentre disegni. «Solo linee» rende trasparente il bianco,
+      utile per i disegni al tratto. Tieni il telefono fermo con un supporto.
+    </p>
+  </section>
 
-  /* Fotocamera */
-  function setCamLabel(on){$('camBtn').textContent=on?'Ferma fotocamera':'Avvia fotocamera'}
-  async function startCam(){
-    stopCam();
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-      showErr('Il browser non permette l’accesso alla fotocamera. Apri la pagina da un indirizzo https:// (per esempio GitHub Pages).');return;
-    }
-    try{
-      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});
-      cam.srcObject=stream; setCamLabel(true);
-      if(ov.style.display!=='block') msg.style.display='none';
-      try{ if(navigator.wakeLock) wake=await navigator.wakeLock.request('screen'); }catch(_){}
-    }catch(err){
-      showErr(err&&err.name==='NotAllowedError'
-        ? 'Accesso alla fotocamera negato. Consenti la fotocamera nelle impostazioni del browser per questo sito, poi riprova.'
-        : 'Impossibile avviare la fotocamera. Controlla che nessun’altra app la stia usando.');
-    }
-  }
-  function stopCam(){
-    if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}
-    cam.srcObject=null; setCamLabel(false);
-    if(wake){try{wake.release()}catch(_){} wake=null}
-  }
-  function showErr(t){
-    msg.style.display='flex';
-    msg.innerHTML='<strong>Fotocamera non disponibile</strong><p></p>';
-    msg.querySelector('p').textContent=t;
-  }
-  $('camBtn').onclick=function(){stream?stopCam():startCam()};
-  $('flipCam').onclick=function(){facing=facing==='environment'?'user':'environment'; if(stream) startCam()};
-  document.addEventListener('visibilitychange',function(){
-    if(!document.hidden&&stream&&!wake&&navigator.wakeLock){navigator.wakeLock.request('screen').then(function(w){wake=w}).catch(function(){})}
-  });
+  <input type="file" id="file" accept="image/*" hidden>
 
-  /* Controlli */
-  $('op').oninput=function(e){st.op=+e.target.value;apply()};
-  $('sc').oninput=function(e){st.s=+e.target.value;apply()};
-  $('rot').oninput=function(e){st.r=+e.target.value;apply()};
-  function toggle(id,key,cb){
-    var b=$(id); b.onclick=function(){st[key]=!st[key]; b.setAttribute('aria-pressed',st[key]); if(cb)cb(); apply();};
-  }
-  toggle('mirror','flip'); toggle('lines','lines'); toggle('lock','locked'); toggle('hide','hidden');
-  $('reset').onclick=function(){st.x=0;st.y=0;st.s=1;st.r=0;apply()};
-  $('togglePanel').onclick=function(){panel.classList.toggle('closed')};
-  $('fs').onclick=function(){
-    var d=document.documentElement;
-    if(document.fullscreenElement){document.exitFullscreen()}
-    else if(d.requestFullscreen){d.requestFullscreen().catch(function(){})}
-    else{alert('Schermo intero non disponibile su questo browser. Usa «Aggiungi a schermata Home».')}
-  };
-
-  /* Gesti: 1 dito = sposta, 2 dita = zoom + rotazione */
-  var ptrs={}, g=null;
-  function two(){var k=Object.keys(ptrs); return k.length>=2?[ptrs[k[0]],ptrs[k[1]]]:null}
-  function snap(){
-    var t=two();
-    if(t){g={d:Math.hypot(t[1].x-t[0].x,t[1].y-t[0].y),a:Math.atan2(t[1].y-t[0].y,t[1].x-t[0].x),s:st.s,r:st.r}}
-    else{var p=ptrs[Object.keys(ptrs)[0]]; g=p?{px:p.x,py:p.y,x:st.x,y:st.y}:null}
-  }
-  stage.addEventListener('pointerdown',function(e){
-    if(st.locked||ov.style.display!=='block') return;
-    stage.setPointerCapture(e.pointerId);
-    ptrs[e.pointerId]={x:e.clientX,y:e.clientY}; snap();
-  });
-  stage.addEventListener('pointermove',function(e){
-    if(!ptrs[e.pointerId]||!g) return;
-    ptrs[e.pointerId]={x:e.clientX,y:e.clientY};
-    var t=two();
-    if(t){
-      var d=Math.hypot(t[1].x-t[0].x,t[1].y-t[0].y), a=Math.atan2(t[1].y-t[0].y,t[1].x-t[0].x);
-      if(g.d){st.s=Math.min(4,Math.max(.1,g.s*d/g.d))}
-      var dr=(a-g.a)*180/Math.PI; var r=g.r+(st.flip?-dr:dr);
-      while(r>180)r-=360; while(r<-180)r+=360; st.r=r;
-    }else if(g.px!==undefined){
-      st.x=g.x+(e.clientX-g.px); st.y=g.y+(e.clientY-g.py);
-    }
-    apply();
-  });
-  function up(e){delete ptrs[e.pointerId]; snap()}
-  stage.addEventListener('pointerup',up); stage.addEventListener('pointercancel',up);
-  stage.addEventListener('wheel',function(e){
-    if(st.locked) return; e.preventDefault();
-    st.s=Math.min(4,Math.max(.1,st.s*(e.deltaY<0?1.05:.95))); apply();
-  },{passive:false});
-
-  apply();
-})();
-</script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
